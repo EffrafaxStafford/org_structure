@@ -59,13 +59,10 @@ class DepartmentUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at')
 
     def validate(self, attrs):
+        _validate_department_name_uniqueness(self, attrs)
+
         department = self.instance
         new_parent = attrs.get('parent', department.parent)
-
-        _validate_department_name_uniqueness(
-            self,
-            attrs,
-        )
 
         if new_parent is None:
             return attrs
