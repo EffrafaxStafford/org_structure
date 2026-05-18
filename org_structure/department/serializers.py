@@ -60,15 +60,14 @@ class DepartmentUpdateSerializer(serializers.ModelSerializer):
 
 
 class DepartmentTreeSerializer(serializers.ModelSerializer):
+    department = DepartmentSerializer(source='*', read_only=True)
     employees = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
 
     class Meta:
         model = Department
         fields = (
-            'id',
-            'name',
-            'created_at',
+            'department',
             'employees',
             'children',
         )
