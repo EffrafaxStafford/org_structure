@@ -1,0 +1,2 @@
+MIN_DEPTH = 1
+MAX_DEPTH = 5
