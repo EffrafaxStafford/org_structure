@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
 from .models import Department, Employee
 from .serializers import (
@@ -47,8 +48,7 @@ class DepartmentDetailAPIView(APIView):
             pk=id,
         )
 
-        depth = int(request.query_params.get('depth', MIN_DEPTH))
-        depth = min(depth, MAX_DEPTH)
+        depth = self._get_depth_from_query(request)
 
         include_employees = (
             request.query_params.get(
@@ -66,6 +66,28 @@ class DepartmentDetailAPIView(APIView):
         )
 
         return Response(serializer.data)
+
+    def _get_depth_from_query(self, request):
+        """Получить параметр depth из запроса и проверить его валидность."""
+
+        raw_depth = request.query_params.get('depth')
+
+        if raw_depth is None:
+            return MIN_DEPTH
+
+        try:
+            depth = int(raw_depth)
+        except (TypeError, ValueError):
+            raise ValidationError({
+                'depth': f'Параметр depth должен быть целым числом от {MIN_DEPTH} до {MAX_DEPTH}.'
+            })
+
+        if depth < MIN_DEPTH or depth > MAX_DEPTH:
+            raise ValidationError({
+                'depth': f'Параметр depth должен быть целым числом от {MIN_DEPTH} до {MAX_DEPTH}.'
+            })
+
+        return depth
 
     def patch(self, request, id):
         department = get_object_or_404(Department, pk=id)
@@ -87,6 +109,10 @@ class DepartmentDetailAPIView(APIView):
         )
 
         mode = request.query_params.get('mode')
+        if mode is None:
+            raise ValidationError({
+                'mode': 'Этот параметр запроса обязателен и должен быть равен "cascade" или "reassign".'
+            })
 
         if mode == 'cascade':
             department.delete()
@@ -98,15 +124,9 @@ class DepartmentDetailAPIView(APIView):
             )
 
             if not reassign_to_department_id:
-                return Response(
-                    {
-                        'reassign_to_department_id': (
-                            'Этот параметр запроса обязателен '
-                            'при mode=reassign.'
-                        )
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                raise ValidationError({
+                    'reassign_to_department_id': 'Этот параметр запроса обязателен при mode=reassign.'
+                })
 
             reassign_to_department = get_object_or_404(
                 Department,
@@ -114,14 +134,9 @@ class DepartmentDetailAPIView(APIView):
             )
 
             if reassign_to_department.id == department.id:
-                return Response(
-                    {
-                        'reassign_to_department_id': (
-                            'Нельзя переназначить сотрудников в удаленное подразделение.'
-                        )
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                raise ValidationError({
+                    'reassign_to_department_id': 'Нельзя переназначить сотрудников в удаленное подразделение.'
+                })
 
             department.employees.update(
                 department=reassign_to_department,
@@ -130,10 +145,3 @@ class DepartmentDetailAPIView(APIView):
             department.delete()
 
             return Response(status=status.HTTP_204_NO_CONTENT)
-
-        return Response(
-            {
-                'mode': 'Этот параметр запроса обязателен и должен быть равен "cascade" или "reassign".'
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )

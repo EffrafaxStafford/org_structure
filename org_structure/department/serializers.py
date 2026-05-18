@@ -3,11 +3,45 @@ from rest_framework import serializers
 from .models import Department, Employee
 
 
+def _validate_department_name_uniqueness(serializer, attrs):
+    """Проверяет, что в рамках одного parent нет двух подразделений с одинаковым названием."""
+
+    instance = getattr(serializer, 'instance', None)
+    parent = attrs.get(
+        'parent',
+        instance.parent if instance is not None else None,
+    )
+    name = attrs.get(
+        'name',
+        instance.name if instance is not None else None,
+    )
+
+    if name is None:
+        return
+
+    existing_departments = Department.objects.filter(
+        parent=parent,
+        name=name,
+    )
+
+    if instance is not None:
+        existing_departments = existing_departments.exclude(pk=instance.pk)
+
+    if existing_departments.exists():
+        raise serializers.ValidationError({
+            'name': 'Подразделение с таким названием уже существует в рамках этого parent.'
+        })
+
+
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
         fields = ('id', 'name', 'parent', 'created_at')
         read_only_fields = ('id', 'created_at')
+
+    def validate(self, attrs):
+        _validate_department_name_uniqueness(self, attrs)
+        return attrs
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -27,6 +61,11 @@ class DepartmentUpdateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         department = self.instance
         new_parent = attrs.get('parent', department.parent)
+
+        _validate_department_name_uniqueness(
+            self,
+            attrs,
+        )
 
         if new_parent is None:
             return attrs
