@@ -44,6 +44,15 @@ docker compose up --build
 
 После запуска API будет доступен по адресу [http://localhost:8000](http://localhost:8000)
 
+При первом запуске в базу автоматически загружаются демо-данные из `org_structure/department/fixtures/demo_data.json`.
+
+Если нужно полностью пересоздать базу и заново загрузить фикстуру:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
 ## Тесты
 
 Запуск тестов:
