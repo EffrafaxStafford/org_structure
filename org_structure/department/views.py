@@ -109,10 +109,6 @@ class DepartmentDetailAPIView(APIView):
         )
 
         mode = request.query_params.get('mode')
-        if mode is None:
-            raise ValidationError({
-                'mode': 'Этот параметр запроса обязателен и должен быть равен "cascade" или "reassign".'
-            })
 
         if mode == 'cascade':
             department.delete()
@@ -149,3 +145,7 @@ class DepartmentDetailAPIView(APIView):
             department.delete()
 
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+        raise ValidationError({
+            'mode': 'Этот параметр запроса обязателен и должен быть равен "cascade" или "reassign".'
+        })
