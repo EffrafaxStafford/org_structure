@@ -55,10 +55,10 @@ docker compose up --build
 
 ## Тесты
 
-Запуск тестов:
+Запуск тестов внутри Docker-контейнера:
 
 ```bash
-pytest
+docker compose exec backend pytest
 ```
 
 ## API

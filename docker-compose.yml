@@ -24,9 +24,9 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    working_dir: /app/org_structure
     command: >
-      sh -c "cd org_structure &&
-            python manage.py migrate &&
+      sh -c "python manage.py migrate &&
             (
               python manage.py shell -c 'import sys; from department.models import Department; sys.exit(0 if Department.objects.exists() else 1)' ||
               python manage.py loaddata department/fixtures/demo_data.json
