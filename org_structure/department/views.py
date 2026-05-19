@@ -138,6 +138,10 @@ class DepartmentDetailAPIView(APIView):
                     'reassign_to_department_id': 'Нельзя переназначить сотрудников в удаленное подразделение.'
                 })
 
+            department.children.update(
+                parent=reassign_to_department,
+            )
+
             department.employees.update(
                 department=reassign_to_department,
             )
